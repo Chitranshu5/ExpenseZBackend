@@ -27,16 +27,50 @@ app.get("/home", (req, res) => {
 });
 
 // Backup route
+// app.post("/api/backup", async (req, res) => {
+//   try {
+//     const { users, transactions } = req.body;
+
+//     await Users.deleteMany({});
+//     await Transaction.deleteMany({});
+//     await Users.insertMany(users);
+//     await Transaction.insertMany(transactions);
+
+//     res.status(200).json({ message: "✅ Backup saved successfully." });
+//     console.log("✅ Backup saved successfully.");
+//   } catch (error) {
+//     console.error("❌ Backup error:", error);
+//     res.status(500).json({ message: "Backup failed", error });
+//   }
+// });
+
+
 app.post("/api/backup", async (req, res) => {
   try {
     const { users, transactions } = req.body;
 
-    await Users.deleteMany({});
-    await Transaction.deleteMany({});
-    await Users.insertMany(users);
-    await Transaction.insertMany(transactions);
+    // Upsert users (assuming unique by email)
+    const userOps = users.map(user => ({
+      updateOne: {
+        filter: { email: user.email },
+        update: user,
+        upsert: true,
+      },
+    }));
+    await Users.bulkWrite(userOps);
+
+    // Upsert transactions using _id
+    const transactionOps = transactions.map(tx => ({
+      updateOne: {
+        filter: { _id: tx._id }, // Use MongoDB _id field here
+        update: tx,
+        upsert: true,
+      },
+    }));
+    await Transaction.bulkWrite(transactionOps);
 
     res.status(200).json({ message: "✅ Backup saved successfully." });
+    console.log("✅ Backup saved successfully.");
   } catch (error) {
     console.error("❌ Backup error:", error);
     res.status(500).json({ message: "Backup failed", error });
@@ -50,6 +84,7 @@ app.get("/api/restore", async (req, res) => {
     const transactions = await Transaction.find({});
 
     res.status(200).json({ users, transactions });
+    console.log("✅ Restore completed successfully.");
   } catch (error) {
     console.error("❌ Restore error:", error);
 
