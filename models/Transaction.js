@@ -9,6 +9,7 @@ const TransactionSchema = new mongoose.Schema({
   date: Date,
   description: String,
   category: String,
+  ownerId: String, // Reference to the owner user
 });
 
 export default mongoose.model("Transaction", TransactionSchema);

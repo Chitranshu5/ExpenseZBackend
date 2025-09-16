@@ -5,6 +5,7 @@ const UserSchema = new mongoose.Schema({
   name: String,
   email: String,
   phone: String,
+  ownerId: String, // Reference to the owner user
 });
 
 export default mongoose.model("User", UserSchema);
