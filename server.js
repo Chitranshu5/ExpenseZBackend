@@ -78,13 +78,37 @@ app.post("/api/backup", async (req, res) => {
 });
 
 // Restore route
+// Restore route with ownerId filtering
 app.get("/api/restore", async (req, res) => {
   try {
-    const users = await Users.find({});
-    const transactions = await Transaction.find({});
+    // Assuming `ownerId` is passed as a query parameter (e.g., ?ownerId=965-886-6835)
+    const { ownerId } = req.query;
+    console.log("Restore request received for ownerId:", ownerId);
 
+    if (!ownerId) {
+      return res.status(400).json({ message: "Owner ID is required." });
+    }
+
+    // Fetch users where ownerId matches the query parameter
+    const users = await Users.find({ ownerId });
+
+    // Fetch transactions where ownerId matches the query parameter
+    const transactions = await Transaction.find({ ownerId });
+
+    // Handle case where no users or transactions are found
+    if (!users || users.length === 0) {
+      return res.status(404).json({ message: "No users found for the provided ownerId." });
+    }
+
+    if (!transactions || transactions.length === 0) {
+      return res.status(404).json({ message: "No transactions found for the provided ownerId." });
+    }
+
+    // Send response with filtered data
     res.status(200).json({ users, transactions });
-    console.log("✅ Restore completed successfully.");
+    console.log("Fetched transactions:", transactions);
+    console.log("Fetched users:", users);
+
   } catch (error) {
     console.error("❌ Restore error:", error);
 
@@ -94,7 +118,6 @@ app.get("/api/restore", async (req, res) => {
       error: {
         message: error.message,
         stack: error.stack,
-        // You can add more error details here if needed
       },
     });
   }
