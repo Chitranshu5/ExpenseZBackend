@@ -49,25 +49,32 @@ app.post("/api/backup", async (req, res) => {
   try {
     const { users, transactions } = req.body;
 
+      if (!users?.length && !transactions?.length) {
+      return res.status(400).json({ message: "No data to backup." });
+    }
+
+
+
     // Upsert users (assuming unique by email)
-    const userOps = users.map(user => ({
+     const userOps = users.map(user => ({
       updateOne: {
-        filter: { email: user.email },
-        update: user,
+        filter: { email: user.email, ownerId: user.ownerId },
+        update: { $set: user },
         upsert: true,
       },
     }));
-    await Users.bulkWrite(userOps);
+    if (userOps.length) await Users.bulkWrite(userOps);
+
 
     // Upsert transactions using _id
-    const transactionOps = transactions.map(tx => ({
+   const transactionOps = transactions.map(tx => ({
       updateOne: {
-        filter: { _id: tx._id }, // Use MongoDB _id field here
-        update: tx,
+        filter: { id: tx.id, ownerId: tx.ownerId },
+        update: { $set: tx },
         upsert: true,
       },
     }));
-    await Transaction.bulkWrite(transactionOps);
+    if (transactionOps.length) await Transaction.bulkWrite(transactionOps);
 
     res.status(200).json({ message: "✅ Backup saved successfully." });
     console.log("✅ Backup saved successfully.");
@@ -96,13 +103,13 @@ app.get("/api/restore", async (req, res) => {
     const transactions = await Transaction.find({ ownerId });
 
     // Handle case where no users or transactions are found
-    if (!users || users.length === 0) {
-      return res.status(404).json({ message: "No users found for the provided ownerId." });
-    }
+    // if (!users || users.length === 0) {
+    //   return res.status(404).json({ message: "No users found for the provided ownerId." });
+    // }
 
-    if (!transactions || transactions.length === 0) {
-      return res.status(404).json({ message: "No transactions found for the provided ownerId." });
-    }
+    // if (!transactions || transactions.length === 0) {
+    //   return res.status(404).json({ message: "No transactions found for the provided ownerId." });
+    // }
 
     // Send response with filtered data
     res.status(200).json({ users, transactions });
